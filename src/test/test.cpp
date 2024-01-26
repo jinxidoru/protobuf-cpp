@@ -1,3 +1,4 @@
+#include <protobuf-cpp.hpp>
 #include <catch2/catch_all.hpp>
 #include "simple.pb.h"
 #include "simple.hpp"
@@ -16,17 +17,28 @@ auto orig_serialize(auto& msg) {
 }
 
 
+TEST_CASE("simple message") {
 
-TEST_CASE("simple message encoding") {
-  test::SimpleMessage msg;
-  msg.set_name("bob");
-  msg.set_num(123990320);
-  auto data = orig_serialize(msg);
+  SECTION("encoding") {
+    test::SimpleMessage msg;
+    msg.set_name("bob");
+    msg.set_num(123990320);
+    auto data = orig_serialize(msg);
 
-  // verify that we get the same value when decoding to pbcpp
-  tmp::test::SimpleMessage msg2;
-  pbcpp::decoder::from_string(data,msg2);
-  REQUIRE( msg2.name == msg.name() );
-  REQUIRE( msg2.num == msg.num() );
-  REQUIRE( msg2.nums == get_repeated(msg.mutable_nums()) );
+    // verify that we get the same value when decoding to pbcpp
+    tmp::test::SimpleMessage msg2;
+    pbcpp::decoder::from_string(data,msg2);
+    REQUIRE( msg2.name == msg.name() );
+    REQUIRE( msg2.num == msg.num() );
+    REQUIRE( msg2.nums == get_repeated(msg.mutable_nums()) );
+  }
+
+  SECTION("to_string") {
+    tmp::test::SimpleMessage msg;
+    msg.name = "Michael";
+    msg.num = 1922211;
+    msg.nums = {1,2,3,4};
+    REQUIRE( std::to_string(msg) == "{name:Michael,num:1922211,nums:[1,2,3,4]}" );
+  }
 }
+

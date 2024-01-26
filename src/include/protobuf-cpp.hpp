@@ -1,6 +1,8 @@
 #pragma once
 #include <string_view>
 #include <list>
+#include <string>
+#include <sstream>
 
 
 namespace pbcpp {
@@ -10,6 +12,16 @@ namespace pbcpp {
   using i32 = int32_t;
   using i64 = int64_t;
   using u8 = uint8_t;
+
+
+  // ---- helper code
+  namespace impl {
+    template <class> struct is_vector : std::false_type {};
+    template <class T, class A> struct is_vector<std::vector<T,A>> : std::true_type {};
+
+    template <class> struct memptr_ret_type : std::type_identity<void> {};
+    template <class C, class T> struct memptr_ret_type<T(C::*)> : std::type_identity<T> {};
+  }
 
 
   // --- macros
@@ -22,12 +34,11 @@ namespace pbcpp {
     TYPE_SINT64, TYPE_FIXED32, TYPE_FIXED64, TYPE_SFIXED32, TYPE_SFIXED64, TYPE_BOOL, TYPE_STRING,
     TYPE_ENUM, TYPE_MSG
   };
-
   enum pb_wire_type { WT_VARINT=0, WT_I64=1, WT_LEN=2, WT_I32=5 };
 
-
   template <class> struct reflect;
-  template <class T> concept pb_is_message = requires { reflect<std::decay_t<T>>::size; };
+
+  template <class T> concept is_message = requires { reflect<std::decay_t<T>>::size; };
 
   template <size_t N> struct pb_name {
     char data[N];
@@ -52,10 +63,12 @@ namespace pbcpp {
     static constexpr decltype(memptr_) mptr = memptr_;
     static constexpr string_view name{name_.data, name_.len};
     static constexpr bool can_pack = (type_ != TYPE_STRING) && (type_ != TYPE_MSG);
+    using cpptype = impl::memptr_ret_type<decltype(memptr_)>::type;
+    static constexpr bool is_repeated = impl::is_vector<cpptype>::value;
   };
 
-  void pb_each_field_r(auto&& fn, auto f, auto... fs) {
-    if constexpr (sizeof...(fs) != 0)  pb_each_field_r(fn, fs...);
+  void each_field_r(auto&& fn, auto f, auto... fs) {
+    if constexpr (sizeof...(fs) != 0)  each_field_r(fn, fs...);
     fn(f);
   }
 
@@ -63,7 +76,7 @@ namespace pbcpp {
     static constexpr size_t size = sizeof...(Fields);
 
     static void each_field(auto&& fn) { (fn(Fields{}), ...); }
-    static void each_field_r(auto&& fn) { pb_each_field_r(fn, Fields{}...); }
+    static void each_field_r(auto&& fn) { each_field_r(fn, Fields{}...); }
   };
 
 
@@ -374,5 +387,51 @@ namespace pbcpp {
       decoder.decode_msg(msg);
     }
   };
+
+
+  auto get_reflect(is_message auto const& msg) {
+    return reflect<std::decay_t<decltype(msg)>>{};
+  }
+
+
+  std::ostream& to_ostream(std::ostream& os, is_message auto const& msg) {
+    os << "{";
+    auto reflectx = get_reflect(msg);
+    bool is_first = true;
+    reflectx.each_field([&](auto f) {
+      if (!is_first)  os << ",";
+      is_first = false;
+      os << f.name << ":";
+
+      auto& val = msg.*f.mptr;
+      if constexpr (f.is_repeated) {
+        os << '[';
+        int n = 0;
+        for (auto&& el : val) {
+          if (n++)  os << ',';
+          os << el;
+        }
+        os << ']';
+      } else {
+        os << val;
+      }
+    });
+    return os << "}";
+  }
+
+  string to_string(is_message auto const& msg) {
+    std::ostringstream oss;
+    oss << msg;
+    return oss.str();
+  }
 }
 
+
+namespace std {
+  ostream& operator<<(ostream& os, pbcpp::is_message auto const& msg) {
+    return pbcpp::to_ostream(os,msg);
+  }
+  string to_string(pbcpp::is_message auto const& msg) {
+    return pbcpp::to_string(msg);
+  }
+}
