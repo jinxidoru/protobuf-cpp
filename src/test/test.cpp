@@ -40,5 +40,26 @@ TEST_CASE("simple message") {
     msg.nums = {1,2,3,4};
     REQUIRE( std::to_string(msg) == "{name:Michael,num:1922211,nums:[1,2,3,4]}" );
   }
+
+  SECTION("compare") {
+    tmp::test::SimpleMessage m1, m2;
+    m1.num = 12;
+
+    REQUIRE( m1 > m2 );
+    REQUIRE( m1 != m2 );
+
+    m2.num = 12;
+    REQUIRE( m1 == m2 );
+
+    m1.name = "bob";
+    REQUIRE( m1 > m2 );
+
+    m2.name = m1.name;
+    m1.nums = {3,2,1};
+    m2.nums = {3,1,2,4};
+    REQUIRE( m1 < m2 );
+    m1.nums.push_back(4);
+    REQUIRE( m1 > m2 );
+  }
 }
 

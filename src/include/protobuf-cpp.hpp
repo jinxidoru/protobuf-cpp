@@ -77,6 +77,7 @@ namespace pbcpp {
 
     static void each_field(auto&& fn) { (fn(Fields{}), ...); }
     static void each_field_r(auto&& fn) { each_field_r(fn, Fields{}...); }
+    static void each_field_exitable(auto&& fn) { (fn(Fields{}) && ...); }
   };
 
 
@@ -396,9 +397,8 @@ namespace pbcpp {
 
   std::ostream& to_ostream(std::ostream& os, is_message auto const& msg) {
     os << "{";
-    auto reflectx = get_reflect(msg);
     bool is_first = true;
-    reflectx.each_field([&](auto f) {
+    get_reflect(msg).each_field([&](auto f) {
       if (!is_first)  os << ",";
       is_first = false;
       os << f.name << ":";
@@ -424,6 +424,24 @@ namespace pbcpp {
     oss << msg;
     return oss.str();
   }
+
+  template <is_message T> std::strong_ordering compare(T const& a, T const& b) {
+    std::strong_ordering ret = std::strong_ordering::equal;
+    get_reflect(a).each_field_exitable([&](auto f) {
+      auto const& aval = (a.*f.mptr);
+      auto const& bval = (b.*f.mptr);
+      if constexpr (f.is_repeated) {
+        ret = aval.size() <=> bval.size();
+        for (int i=0; i<aval.size() && (ret==0); i++) {
+          ret = aval[i] <=> bval[i];
+        }
+      } else {
+        ret = aval <=> bval;
+      }
+      return (ret == 0);
+    });
+    return ret;
+  }
 }
 
 
@@ -435,3 +453,10 @@ namespace std {
     return pbcpp::to_string(msg);
   }
 }
+
+
+template <pbcpp::is_message T>
+std::strong_ordering operator<=>(T const& a, T const& b) { return pbcpp::compare(a,b); }
+
+template <pbcpp::is_message T> bool operator==(T const& a, T const& b) { return (a <=> b) == 0; }
+template <pbcpp::is_message T> bool operator!=(T const& a, T const& b) { return (a <=> b) != 0; }
