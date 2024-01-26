@@ -34,6 +34,9 @@ TEST_CASE("simple message") {
     REQUIRE( msg2.name == msg.name() );
     REQUIRE( msg2.num == msg.num() );
     REQUIRE( msg2.nums == get_repeated(msg.mutable_nums()) );
+
+    // encode back again
+    pbcpp::encoder::to_string(msg2);
   }
 
   SECTION("to_string") {

@@ -67,8 +67,8 @@ namespace pbcpp {
     static constexpr bool is_repeated = impl::is_vector<cpptype>::value;
   };
 
-  void each_field_r(auto&& fn, auto f, auto... fs) {
-    if constexpr (sizeof...(fs) != 0)  each_field_r(fn, fs...);
+  void pb_each_field_r(auto&& fn, auto f, auto... fs) {
+    if constexpr (sizeof...(fs) != 0)  pb_each_field_r(fn, fs...);
     fn(f);
   }
 
@@ -76,7 +76,7 @@ namespace pbcpp {
     static constexpr size_t size = sizeof...(Fields);
 
     static void each_field(auto&& fn) { (fn(Fields{}), ...); }
-    static void each_field_r(auto&& fn) { each_field_r(fn, Fields{}...); }
+    static void each_field_r(auto&& fn) { pb_each_field_r(fn, Fields{}...); }
     static void each_field_exitable(auto&& fn) { (fn(Fields{}) && ...); }
   };
 
