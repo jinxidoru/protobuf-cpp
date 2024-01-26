@@ -1,4 +1,4 @@
-#include <protobuf-cpp.hpp>
+#include <protobuf-cpp/protobuf-cpp.hpp>
 #include <catch2/catch_all.hpp>
 #include "simple.pb.h"
 #include "simple.hpp"
