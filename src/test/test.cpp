@@ -5,6 +5,9 @@
 using std::string;
 
 
+void println(auto&&... args) {
+  (std::cout << ... << args) << std::endl;
+}
 
 auto get_repeated(auto* coll) {
   return std::vector(coll->begin(), coll->end());
@@ -60,6 +63,24 @@ TEST_CASE("simple message") {
     REQUIRE( m1 < m2 );
     m1.nums.push_back(4);
     REQUIRE( m1 > m2 );
+  }
+
+  SECTION("hash") {
+    tmp::test::SimpleMessage m1;
+    std::unordered_set<tmp::test::SimpleMessage> set;
+
+    set.insert(m1);
+    m1.name = "bob";
+    set.insert(m1);
+    REQUIRE( set.size() == 2 );
+    m1.nums = {1,2,3,4};
+    set.insert(m1);
+    REQUIRE( set.size() == 3 );
+
+    tmp::test::SimpleMessage m2;
+    m2.name = "bob";
+    m2.nums = {1,2,3,4};
+    REQUIRE( (set.find(m2) != set.end()) );
   }
 }
 

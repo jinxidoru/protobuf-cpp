@@ -442,6 +442,31 @@ namespace pbcpp {
     });
     return ret;
   }
+
+
+  template <class T, class... Ts>
+  size_t std_hash_combine(size_t seed, T const& v, Ts const&&... vs) {
+    seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    if constexpr (sizeof...(Ts) > 0) {
+      seed = std_hash_combine(seed, vs...);
+    }
+    return seed;
+  }
+
+  size_t std_hash(pbcpp::is_message auto const& msg, size_t seed = 0) {
+    get_reflect(msg).each_field([&](auto f) {
+      auto const& val = (msg.*f.mptr);
+      if constexpr (f.is_repeated) {
+        seed = std_hash_combine(seed, val.size());
+        for (auto&& el : val) {
+          seed = std_hash_combine(seed, el);
+        }
+      } else {
+        seed = std_hash_combine(seed, val);
+      }
+    });
+    return seed;
+  }
 }
 
 
@@ -452,6 +477,18 @@ namespace std {
   string to_string(pbcpp::is_message auto const& msg) {
     return pbcpp::to_string(msg);
   }
+
+  template <pbcpp::is_message T> struct hash<T> {
+    size_t operator()(T const& msg) const {
+      return pbcpp::std_hash(msg);
+    }
+  };
+
+  template <pbcpp::is_message T> struct equal_to<T> {
+    bool operator()(T const& a, T const& b) const {
+      return pbcpp::compare(a,b) == 0;
+    }
+  };
 }
 
 

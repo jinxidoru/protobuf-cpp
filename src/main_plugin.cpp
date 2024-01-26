@@ -85,6 +85,7 @@ struct FileGenerator {
 
       // get the type
       string cpptype;
+      string dflt = " = 0";
       switch (field->type()) {
         case FieldDescriptor::TYPE_DOUBLE:   cpptype = "double"; break;
         case FieldDescriptor::TYPE_FLOAT:    cpptype = "float"; break;
@@ -93,11 +94,11 @@ struct FileGenerator {
         case FieldDescriptor::TYPE_INT32:    cpptype = "int32_t"; break;
         case FieldDescriptor::TYPE_FIXED64:  cpptype = "int64_t"; break;
         case FieldDescriptor::TYPE_FIXED32:  cpptype = "int32_t"; break;
-        case FieldDescriptor::TYPE_BOOL:     cpptype = "bool"; break;
-        case FieldDescriptor::TYPE_STRING:   cpptype = "std::string"; break;
+        case FieldDescriptor::TYPE_BOOL:     cpptype = "bool"; dflt = " = false"; break;
+        case FieldDescriptor::TYPE_STRING:   cpptype = "std::string"; dflt = ""; break;
         case FieldDescriptor::TYPE_GROUP:    error_will_not_support("TYPE_GROUP"); break;
-        case FieldDescriptor::TYPE_MESSAGE:  cpptype = field->type_name(); break;
-        case FieldDescriptor::TYPE_BYTES:    cpptype = "cbpp::bytes"; break;
+        case FieldDescriptor::TYPE_MESSAGE:  cpptype = field->type_name(); dflt = ""; break;
+        case FieldDescriptor::TYPE_BYTES:    cpptype = "cbpp::bytes"; dflt = ""; break;
         case FieldDescriptor::TYPE_UINT32:   cpptype = "uint32_t"; break;
         case FieldDescriptor::TYPE_ENUM:     cpptype = field->type_name(); break;
         case FieldDescriptor::TYPE_SFIXED32: cpptype = "int32_t"; break;
@@ -109,19 +110,15 @@ struct FileGenerator {
       // modifiers
       if (field->has_optional_keyword()) {
         cpptype = "std::optional<" + cpptype + ">";
+        dflt = "";
       } else if (field->is_required()) {
         error_unsupported("required");
-      } else if (field->has_optional_keyword()) {
+      } else if (field->is_repeated()) {
         cpptype = "std::vector<" + cpptype + ">";
+        dflt = "";
       }
 
-      switch (field->label()) {
-        case FieldDescriptor::LABEL_REQUIRED:  error_unsupported("required"); break;
-        case FieldDescriptor::LABEL_REPEATED:  cpptype = "std::vector<" + cpptype + ">"; break;
-        case FieldDescriptor::LABEL_OPTIONAL:  break;
-      }
-
-      printer->Print("$cpptype$ $name$;\n", "cpptype", cpptype, "name", field->name());
+      printer->Print("$cpptype$ $name$$dflt$;\n", "cpptype", cpptype, "name", field->name(), "dflt", dflt);
     }
 
     // generate the nested types
