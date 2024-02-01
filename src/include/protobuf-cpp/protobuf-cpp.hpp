@@ -67,6 +67,7 @@ namespace pbcpp {
     static constexpr bool is_repeated = impl::is_vector<cpptype>::value;
   };
 
+  void pb_each_field_r(auto&&) {}
   void pb_each_field_r(auto&& fn, auto f, auto... fs) {
     if constexpr (sizeof...(fs) != 0)  pb_each_field_r(fn, fs...);
     fn(f);
@@ -267,7 +268,7 @@ namespace pbcpp {
 
 
     // --- static methods
-    static string to_string(auto& msg) {
+    static string to_string(auto const& msg) {
       encoder encoder;
       encoder.encode_top(msg);
       return encoder.as_str();
