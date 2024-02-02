@@ -1,7 +1,12 @@
 syntax = "proto3";
+import "google/protobuf/descriptor.proto";
+package test.orig;
 
-package test;
+extend google.protobuf.FileOptions {
+  optional string pbcpp_namespace = 78001;
+};
 
+option (pbcpp_namespace) = "test::pbcpp";
 
 message SimpleMessage {
   string name = 1;

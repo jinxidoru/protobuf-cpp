@@ -36,17 +36,20 @@ struct FileGenerator {
 
     // create the namespace
     string ns;
-    string_view pkg = file->package();
-    for (;;) {
-      if (auto pos = pkg.find('.'); pos != string::npos) {
-        ns += (string)pkg.substr(0,pos) + "::";
-        pkg = pkg.substr(pos+1);
-      } else {
-        ns += (string)pkg;
-        break;
+    if (auto ext_ns = ext_namespace(file)) {
+      ns = *ext_ns;
+    } else {
+      string_view pkg = file->package();
+      for (;;) {
+        if (auto pos = pkg.find('.'); pos != string::npos) {
+          ns += (string)pkg.substr(0,pos) + "::";
+          pkg = pkg.substr(pos+1);
+        } else {
+          ns += (string)pkg;
+          break;
+        }
       }
     }
-    ns = "tmp::" + ns;
 
     // process each message type
     if (!ns.empty()) {
@@ -71,7 +74,14 @@ struct FileGenerator {
     printer->Print("}\n");
   }
 
-  void generateStructs(auto container) {
+  std::optional<string> ext_namespace(FileDescriptor const* file) {
+    auto& unknown = file->options().unknown_fields();
+    for (int i=0, e=unknown.field_count(); i<e; i++) {
+      if (unknown.field(i).number() == 78001) {
+        return unknown.field(i).length_delimited();
+      }
+    }
+    return std::nullopt;
   }
 
   void generateStruct(Descriptor const* msg) {

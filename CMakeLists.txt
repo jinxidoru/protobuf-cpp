@@ -40,6 +40,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
       OUTPUT ${GENERATED_CODE_DIR}/${basename}.pb.cc ${GENERATED_CODE_DIR}/${basename}.pb.h
       COMMAND protobuf::protoc
       ARGS --proto_path ${PROTO_DIR} ${proto} --cpp_out ${GENERATED_CODE_DIR}
+           -I ${protobuf_SOURCE_DIR}/src
       DEPENDS ${PROTO_DIR}/${proto})
 
     add_custom_command(
@@ -47,6 +48,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
       COMMAND protobuf::protoc
       ARGS --proto_path ${PROTO_DIR} ${proto} --pbcpp_out ${GENERATED_CODE_DIR}
            --plugin=protoc-gen-pbcpp=$<TARGET_FILE:pbcpp-plugin>
+           -I ${protobuf_SOURCE_DIR}/src
       DEPENDS ${PROTO_DIR}/${proto} pbcpp-plugin)
     list(APPEND proto_SRCS ${basename}.pb.cc ${basename}.pb.h ${basename}.hpp)
   endforeach()
